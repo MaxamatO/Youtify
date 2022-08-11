@@ -19,8 +19,8 @@ public class YoutifyController {
     }
 
     @GetMapping("/playlists")
-    public RedirectView getPlaylists() throws IOException, ParseException {
-        return new RedirectView(youtifyService.getPlaylists());
+    public String getPlaylists() throws IOException, ParseException {
+        return youtifyService.getPlaylists();
     }
 
 }

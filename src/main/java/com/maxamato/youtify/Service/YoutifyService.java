@@ -8,6 +8,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Objects;
@@ -25,16 +26,20 @@ public class YoutifyService {
     public String getPlaylists() throws IOException, ParseException {
         OkHttpClient client = new OkHttpClient().newBuilder()
                 .build();
+
         MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
+
         RequestBody body = RequestBody
                 .create(mediaType,
                         String.format("grant_type=refresh_token&refresh_token=%s", refreshToken));
+
         Request request = new Request.Builder()
                 .url("https://accounts.spotify.com/api/token")
                 .method("POST", body)
                 .addHeader("Authorization", String.format("Basic %s", encoded))
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
                 .build();
+
         Response response = client.newCall(request).execute();
         String jsonString = Objects.requireNonNull(response.body()).string();
         JSONParser parser = new JSONParser();
@@ -43,6 +48,16 @@ public class YoutifyService {
         jsonObject = (JSONObject) parser.parse(jsonString);
         String accessToken = jsonObject.get("access_token").toString();
 
+        client = new OkHttpClient().newBuilder().build();
+        mediaType = MediaType.parse("application/json");
+        body = RequestBody.create(mediaType, "");
+        request = new Request.Builder()
+                .url(String.format("https://api.spotify.com/v1/users/%s/playlists", userId))
+                .addHeader("Authorization", String.format("Bearer %s", accessToken))
+                .addHeader("Content-Type", "application/application/json")
+                .build();
+        response = client.newCall(request).execute();
+        System.out.println(response.body().string());
         return redirectUri.toString();
 
     }

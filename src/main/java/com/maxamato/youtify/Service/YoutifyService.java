@@ -1,65 +1,41 @@
 package com.maxamato.youtify.Service;
 
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.maxamato.youtify.Credentials;
-import okhttp3.*;
+import com.maxamato.youtify.connection.YoutifyConnection;
+import lombok.AllArgsConstructor;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
 import java.io.IOException;
-import java.net.URI;
-import java.util.Objects;
+
 
 @Service
+@AllArgsConstructor
 public class YoutifyService {
 
-    private static final String userId = com.maxamato.youtify.Credentials.getUserId();
-    private static final URI redirectUri = URI.create("https://example.com/spotify-redirect");
-    private static final String plName = com.maxamato.youtify.Credentials.getPlName();
-    private static final String refreshToken = Credentials.getRefreshToken();
-    private static final String encoded = Credentials.getEncodedIdSecret();
-
+    private final YoutifyConnection youtifyConnection;
 
     public String getPlaylists() throws IOException, ParseException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .build();
+        String jsonString = youtifyConnection.getPlaylists();
+        JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
+        JSONArray jsonArray = (JSONArray) jsonObject.get("items");
+        for (Object o : jsonArray) {
+            JSONObject record = (JSONObject) o;
+            String name = record.get("name").toString();
+            if (name.equals(Credentials.getPlName())) {
+                return record.get("tracks").toString();
+            }
+        }
 
-        MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
 
-        RequestBody body = RequestBody
-                .create(mediaType,
-                        String.format("grant_type=refresh_token&refresh_token=%s", refreshToken));
-
-        Request request = new Request.Builder()
-                .url("https://accounts.spotify.com/api/token")
-                .method("POST", body)
-                .addHeader("Authorization", String.format("Basic %s", encoded))
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .build();
-
-        Response response = client.newCall(request).execute();
-        String jsonString = Objects.requireNonNull(response.body()).string();
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject;
-
-        jsonObject = (JSONObject) parser.parse(jsonString);
-        String accessToken = jsonObject.get("access_token").toString();
-
-        client = new OkHttpClient().newBuilder().build();
-        mediaType = MediaType.parse("application/json");
-        body = RequestBody.create(mediaType, "");
-        request = new Request.Builder()
-                .url(String.format("https://api.spotify.com/v1/users/%s/playlists", userId))
-                .addHeader("Authorization", String.format("Bearer %s", accessToken))
-                .addHeader("Content-Type", "application/application/json")
-                .build();
-        response = client.newCall(request).execute();
-        System.out.println(response.body().string());
-        return redirectUri.toString();
-
+        return youtifyConnection.getPlaylists();
     }
+
+
+
+
 
 }

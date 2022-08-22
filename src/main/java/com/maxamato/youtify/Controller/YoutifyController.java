@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 @RestController
 public class YoutifyController {
@@ -19,8 +20,8 @@ public class YoutifyController {
     }
 
     @GetMapping("/playlists")
-    public String getPlaylists() throws IOException, ParseException {
-        return youtifyService.getPlaylists();
+    public String getPlaylists() throws IOException, ParseException, GeneralSecurityException {
+        return youtifyService.youtubeAPI();
     }
 
 }

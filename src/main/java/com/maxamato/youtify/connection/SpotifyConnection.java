@@ -1,5 +1,6 @@
 package com.maxamato.youtify.connection;
 
+import com.google.api.client.json.JsonFactory;
 import com.maxamato.youtify.Credentials;
 import okhttp3.*;
 import org.json.simple.JSONObject;
@@ -9,10 +10,12 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Objects;
 
 @Component
-public class YoutifyConnection {
+public class SpotifyConnection {
 
     private static final String userId = com.maxamato.youtify.Credentials.getUserId();
     private static final URI redirectUri = URI.create("https://example.com/spotify-redirect");

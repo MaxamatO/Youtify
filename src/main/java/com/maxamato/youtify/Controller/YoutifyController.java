@@ -21,7 +21,12 @@ public class YoutifyController {
 
     @GetMapping("/playlists")
     public String getPlaylists() throws IOException, ParseException, GeneralSecurityException {
-        return youtifyService.youtubeAPI();
+        return youtifyService.youtubeAPIs();
+    }
+
+    @GetMapping("/youtify")
+    public String youtifyMain() throws IOException, ParseException, GeneralSecurityException {
+        return youtifyService.addTracks();
     }
 
 }

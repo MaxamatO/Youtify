@@ -26,7 +26,7 @@ public class YoutifyController {
 
     @GetMapping("/youtify")
     public String youtifyMain() throws IOException, ParseException, GeneralSecurityException {
-        return youtifyService.addTracks();
+        return youtifyService.searchForTrackBasedOnPopularity();
     }
 
 }

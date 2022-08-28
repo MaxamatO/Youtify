@@ -35,10 +35,10 @@ public class SpotifyConnection {
         return Objects.requireNonNull(response.body()).string();
     }
 
-    public String addTracks(String ytTrack) throws IOException, ParseException {
+    public String searchForTrackBasedOnPopularity(String ytTrack) throws IOException, ParseException {
         OkHttpClient client = new OkHttpClient().newBuilder().build();
         Request request = new Request.Builder()
-                .url(String.format("https://api.spotify.com/v1/search?q=track:%s&type=track", ytTrack))
+                .url(String.format("https://api.spotify.com/v1/search?q=track%%253A%s&type=track&offset=0", ytTrack))
                 .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
                 .addHeader("Content-Type", "application/application/json")
                 .build();

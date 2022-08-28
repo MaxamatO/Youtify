@@ -2,6 +2,7 @@ package com.maxamato.youtify.Service;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.json.Json;
+import com.google.api.client.json.JsonParser;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
 import com.maxamato.youtify.Credentials;
@@ -16,10 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 import static com.maxamato.youtify.connection.YoutubeConnection.getService;
 
@@ -47,20 +45,25 @@ public class YoutifyService {
         throw new IllegalStateException(new Exception(String.format("No \"%s\" playlist found", Credentials.getPlName())));
     }
 
-    public String addTracks() throws IOException, ParseException, GeneralSecurityException {
-        List<String> tracks = youtubeAPI();
-        String jsonString = spotifyConnection.addTracks(tracks.get(0).replace("-", ""));
-        System.out.println(jsonString);
-//        JSONObject tracks = (JSONObject) new JSONParser().parse(jsonString);
-//        JSONArray items = (JSONArray) tracks.get("items");
-//        for(Object o:items){
-//            JSONObject item = (JSONObject) o;
-//            JSONObject track = (JSONObject) item.get("track");
-//            JSONArray artists = (JSONArray) track.get("artists");
-//
-//
-//            System.out.println(track.get("name"));
-//        }
+    /**
+     Function searches for tracks in Spotify from your Youtube's playlist based on the popularity index.
+     Keep in mind, that the most popular track, may not be the one you are looking for.
+     Spotify's API search item function, does not work perfectly.
+    **/
+    public String searchForTrackBasedOnPopularity() throws IOException, ParseException, GeneralSecurityException {
+        List<String> ytTracks = youtubeAPI();
+        String jsonString = spotifyConnection.searchForTrackBasedOnPopularity(ytTracks.get(0)
+                .replace("- ", "").replace(" ", "%2B"));
+        JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
+        JSONObject tracks = (JSONObject) jsonObject.get("tracks");
+        JSONArray items = (JSONArray) tracks.get("items");
+        List<Long> popularityValues = new ArrayList<>();
+        for(Object o:items){
+            JSONObject toCompare = (JSONObject) o;
+            popularityValues.add((Long) toCompare.get("popularity"));
+        }
+        int indexOfTheMostPopular = popularityValues.indexOf(Collections.max(popularityValues));
+        System.out.println(items.get(indexOfTheMostPopular));
         return "works?";
     }
 

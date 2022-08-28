@@ -30,7 +30,11 @@ public class YoutifyService {
 
 
 
-    public String getPlaylists() throws IOException, ParseException {
+    /**
+     * TODO: check if youtify playlist exists, if not, create, else ignore
+     * TODO: check if provided track already exists in playlist, if not, add it, else ignore
+    **/
+    public Boolean doesYoutifyPlaylistExist() throws IOException, ParseException {
         String jsonString = spotifyConnection.getPlaylists();
         JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
         JSONArray jsonArray = (JSONArray) jsonObject.get("items");
@@ -38,11 +42,10 @@ public class YoutifyService {
             JSONObject record = (JSONObject) o;
             String name = record.get("name").toString().toLowerCase();
             if (name.equals(Credentials.getPlName().toLowerCase())) {
-                JSONObject href =  (JSONObject) record.get("tracks");
-                return href.get("href").toString();
+                return true;
             }
         }
-        throw new IllegalStateException(new Exception(String.format("No \"%s\" playlist found", Credentials.getPlName())));
+        return false;
     }
 
     /**
@@ -50,7 +53,7 @@ public class YoutifyService {
      Keep in mind, that the most popular track, may not be the one you are looking for.
      Spotify's API search item function, does not work perfectly.
     **/
-    public String searchForTrackBasedOnPopularity() throws IOException, ParseException, GeneralSecurityException {
+    public String searchForTrackBasedOnPopularitySpotify() throws IOException, ParseException, GeneralSecurityException {
         List<String> ytTracks = youtubeAPI();
         String jsonString = spotifyConnection.searchForTrackBasedOnPopularity(ytTracks.get(0)
                 .replace("- ", "").replace(" ", "%2B"));
@@ -63,8 +66,10 @@ public class YoutifyService {
             popularityValues.add((Long) toCompare.get("popularity"));
         }
         int indexOfTheMostPopular = popularityValues.indexOf(Collections.max(popularityValues));
-        System.out.println(items.get(indexOfTheMostPopular));
-        return "works?";
+        JSONObject item = (JSONObject) items.get(indexOfTheMostPopular);
+        String trackId = (String) item.get("id");
+
+        return spotifyConnection.addTracks(Credentials.getPlId(), trackId);
     }
 
 
@@ -74,7 +79,7 @@ public class YoutifyService {
         YouTube.PlaylistItems.List request = youtubeService.playlistItems()
                 .list(Collections.singletonList("snippet,contentDetails"));
         PlaylistItemListResponse response = request.setMaxResults(25L)
-                .setPlaylistId(obtainYoutifiesPlaylistId(youtubeService))
+                .setPlaylistId(obtainYoutubePlaylistId(youtubeService))
                 .execute();
         List<PlaylistItem> items = response.getItems();
         List<String> result = new ArrayList<>();
@@ -90,7 +95,7 @@ public class YoutifyService {
         YouTube.PlaylistItems.List request = youtubeService.playlistItems()
                 .list(Collections.singletonList("snippet,contentDetails"));
         PlaylistItemListResponse response = request.setMaxResults(25L)
-                .setPlaylistId(obtainYoutifiesPlaylistId(youtubeService))
+                .setPlaylistId(obtainYoutubePlaylistId(youtubeService))
                 .execute();
         List<PlaylistItem> items = response.getItems();
         for(PlaylistItem playlistItem:items){
@@ -99,7 +104,7 @@ public class YoutifyService {
         return response.toString();
     }
 
-    private String obtainYoutifiesPlaylistId(YouTube youtubeService) throws GeneralSecurityException, IOException {
+    private String obtainYoutubePlaylistId(YouTube youtubeService) throws GeneralSecurityException, IOException {
         // Define and execute the API request
         YouTube.Playlists.List request = youtubeService.playlists()
                 .list(Collections.singletonList("snippet,contentDetails"));
@@ -116,7 +121,6 @@ public class YoutifyService {
         throw new IllegalStateException(new Exception(String.format("No \"%s\" playlist found", playlistName)));
     }
 
-    // TODO: Implement logic to search for tracks obtained in YoutubeApi() in Spotify and add them to respective playlist.
 
 
 

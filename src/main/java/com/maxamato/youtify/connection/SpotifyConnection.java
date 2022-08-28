@@ -35,6 +35,19 @@ public class SpotifyConnection {
         return Objects.requireNonNull(response.body()).string();
     }
 
+    public String addTracks(String playlistId, String trackId) throws IOException, ParseException {
+        OkHttpClient okHttpClient = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, "");
+        Request request = new Request.Builder()
+                .url(String.format("https://api.spotify.com/v1/playlists/%s/tracks?uris=spotify:track:%s", playlistId, trackId))
+                .method("POST", body)
+                .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
+                .build();
+        Response response = okHttpClient.newCall(request).execute();
+        return Objects.requireNonNull(response.body()).string();
+    }
+
     public String searchForTrackBasedOnPopularity(String ytTrack) throws IOException, ParseException {
         OkHttpClient client = new OkHttpClient().newBuilder().build();
         Request request = new Request.Builder()

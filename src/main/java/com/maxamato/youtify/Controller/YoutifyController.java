@@ -19,14 +19,9 @@ public class YoutifyController {
         this.youtifyService = youtifyService;
     }
 
-    @GetMapping("/playlists")
-    public String getPlaylists() throws IOException, ParseException, GeneralSecurityException {
-        return youtifyService.youtubeAPIs();
-    }
-
     @GetMapping("/youtify")
     public String youtifyMain() throws IOException, ParseException, GeneralSecurityException {
-        return youtifyService.searchForTrackBasedOnPopularity();
+        return youtifyService.searchForTrackBasedOnPopularitySpotify();
     }
 
 }

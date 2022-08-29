@@ -1,6 +1,5 @@
 package com.maxamato.youtify.connection;
 
-import com.google.api.client.json.JsonFactory;
 import com.maxamato.youtify.Credentials;
 import okhttp3.*;
 import org.json.simple.JSONObject;
@@ -10,8 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
 
 @Component
@@ -35,7 +32,18 @@ public class SpotifyConnection {
         return Objects.requireNonNull(response.body()).string();
     }
 
-    public String addTracks(String playlistId, String trackId) throws IOException, ParseException {
+    public String getItemsFromPlaylist(String plId) throws IOException, ParseException {
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        Request request = new Request.Builder()
+                .url(String.format("https://api.spotify.com/v1/playlists/%s/tracks?fields=items(track(id))", plId))
+                .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
+                .addHeader("Content-Type", "application/application/json")
+                .build();
+        Response response = client.newCall(request).execute();
+        return Objects.requireNonNull(response.body()).string();
+    }
+
+    public void addTracks(String playlistId, String trackId) throws IOException, ParseException {
         OkHttpClient okHttpClient = new OkHttpClient().newBuilder().build();
         MediaType mediaType = MediaType.parse("application/json");
         RequestBody body = RequestBody.create(mediaType, "");
@@ -45,7 +53,7 @@ public class SpotifyConnection {
                 .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
                 .build();
         Response response = okHttpClient.newCall(request).execute();
-        return Objects.requireNonNull(response.body()).string();
+        Objects.requireNonNull(response.body()).string();
     }
 
     public String searchForTrackBasedOnPopularity(String ytTrack) throws IOException, ParseException {
@@ -82,5 +90,14 @@ public class SpotifyConnection {
     }
 
 
+    public void createYoutifyPlaylist() throws IOException, ParseException {
+        OkHttpClient okHttpClient = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody requestBody = RequestBody.create(mediaType, String.format("{\\\"name\\\":\\\"%s\\\",\\\"description\\\":\\\"Youtify playlist\\\",\\\"public\\\":false}", plName));
+        Request request = new Request.Builder()
+                .url(String.format("https://api.spotify.com/v1/users/%s/playlists", userId))
+                .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
+                .build();
 
+    }
 }

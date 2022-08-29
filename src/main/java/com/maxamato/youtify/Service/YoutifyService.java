@@ -1,8 +1,6 @@
 package com.maxamato.youtify.Service;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.json.Json;
-import com.google.api.client.json.JsonParser;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.*;
 import com.maxamato.youtify.Credentials;
@@ -29,12 +27,30 @@ public class YoutifyService {
     private final SpotifyConnection spotifyConnection;
 
 
+    /***
+     *TODO: Optimise adding tracks
+     * ISSUE: tracks getting multiplied.
+     * IDEA: Instead of loops, make List<String> tracksToAdd (their ids)
+     * -> Check them with List<String> tracksIdsInsideSpotifyPlaylist, ignore matching ones,
+     * add the rest using body request
+     * instead of query params in SpotifyConnection.addTrack();
+     * Try to fetch tracks better
+     **/
 
-    /**
-     * TODO: check if youtify playlist exists, if not, create, else ignore
-     * TODO: check if provided track already exists in playlist, if not, add it, else ignore
-    **/
-    public Boolean doesYoutifyPlaylistExist() throws IOException, ParseException {
+    public String mainYoutify() throws IOException, ParseException, GeneralSecurityException {
+        if(!doesYoutifyPlaylistExist()){
+            createYoutifyPlaylist();
+        }
+        searchForTrackBasedOnPopularitySpotify(obtainTitlesFromYoutubePlaylist());
+
+        return "You can close the window.";
+    }
+
+    private void createYoutifyPlaylist() throws IOException, ParseException {
+        spotifyConnection.createYoutifyPlaylist();
+    }
+
+    private Boolean doesYoutifyPlaylistExist() throws IOException, ParseException {
         String jsonString = spotifyConnection.getPlaylists();
         JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
         JSONArray jsonArray = (JSONArray) jsonObject.get("items");
@@ -50,30 +66,46 @@ public class YoutifyService {
 
     /**
      Function searches for tracks in Spotify from your Youtube's playlist based on the popularity index.
-     Keep in mind, that the most popular track, may not be the one you are looking for.
-     Spotify's API search item function, does not work perfectly.
+     Keep in mind\, that the most popular track, may not be the one you are looking for.
+     Spotify's API search item function does not wor.
     **/
-    public String searchForTrackBasedOnPopularitySpotify() throws IOException, ParseException, GeneralSecurityException {
-        List<String> ytTracks = youtubeAPI();
-        String jsonString = spotifyConnection.searchForTrackBasedOnPopularity(ytTracks.get(0)
-                .replace("- ", "").replace(" ", "%2B"));
-        JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
-        JSONObject tracks = (JSONObject) jsonObject.get("tracks");
-        JSONArray items = (JSONArray) tracks.get("items");
-        List<Long> popularityValues = new ArrayList<>();
-        for(Object o:items){
-            JSONObject toCompare = (JSONObject) o;
-            popularityValues.add((Long) toCompare.get("popularity"));
+    private void searchForTrackBasedOnPopularitySpotify(List<String> ytTracks) throws IOException, ParseException, GeneralSecurityException {
+        for(String ytTrack:ytTracks) {
+            String jsonString = spotifyConnection.searchForTrackBasedOnPopularity(ytTrack
+                    .replace("- ", "").replace(" ", "%2B"));
+            JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
+            JSONObject tracks = (JSONObject) jsonObject.get("tracks");
+            JSONArray items = (JSONArray) tracks.get("items");
+            List<Long> popularityValues = new ArrayList<>();
+            for (Object o : items) {
+                JSONObject toCompare = (JSONObject) o;
+                popularityValues.add((Long) toCompare.get("popularity"));
+            }
+            int indexOfTheMostPopular = popularityValues.indexOf(Collections.max(popularityValues));
+            JSONObject item = (JSONObject) items.get(indexOfTheMostPopular);
+            String trackId = (String) item.get("id");
+            addTracks(Credentials.getPlId(), trackId);
         }
-        int indexOfTheMostPopular = popularityValues.indexOf(Collections.max(popularityValues));
-        JSONObject item = (JSONObject) items.get(indexOfTheMostPopular);
-        String trackId = (String) item.get("id");
+    }
 
-        return spotifyConnection.addTracks(Credentials.getPlId(), trackId);
+    private void addTracks(String plId, String trackId) throws IOException, ParseException {
+        String jsonString = spotifyConnection.getItemsFromPlaylist(plId);
+        JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
+        JSONArray jsonArray = (JSONArray) jsonObject.get("items");
+        for(Object o:jsonArray){
+            JSONObject item = (JSONObject) o;
+            System.out.println(item);
+            JSONObject track = (JSONObject) item.get("track");
+            String id = (String) track.get("id");
+
+            System.out.println(id);
+            if(!id.equals(trackId))
+                spotifyConnection.addTracks(plId, trackId);
+        }
     }
 
 
-    public List<String> youtubeAPI()throws GeneralSecurityException, IOException, GoogleJsonResponseException {
+    private List<String> obtainTitlesFromYoutubePlaylist()throws GeneralSecurityException, IOException, GoogleJsonResponseException {
         YouTube youtubeService = getService();
         // Define and execute the API request
         YouTube.PlaylistItems.List request = youtubeService.playlistItems()
@@ -87,21 +119,6 @@ public class YoutifyService {
             result.add(playlistItem.getSnippet().getTitle());
         }
         return result;
-    }
-
-    public String youtubeAPIs()throws GeneralSecurityException, IOException, GoogleJsonResponseException {
-        YouTube youtubeService = getService();
-        // Define and execute the API request
-        YouTube.PlaylistItems.List request = youtubeService.playlistItems()
-                .list(Collections.singletonList("snippet,contentDetails"));
-        PlaylistItemListResponse response = request.setMaxResults(25L)
-                .setPlaylistId(obtainYoutubePlaylistId(youtubeService))
-                .execute();
-        List<PlaylistItem> items = response.getItems();
-        for(PlaylistItem playlistItem:items){
-            System.out.println(playlistItem.toString());
-        }
-        return response.toString();
     }
 
     private String obtainYoutubePlaylistId(YouTube youtubeService) throws GeneralSecurityException, IOException {

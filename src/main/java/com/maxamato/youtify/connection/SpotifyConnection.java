@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -43,14 +44,16 @@ public class SpotifyConnection {
         return Objects.requireNonNull(response.body()).string();
     }
 
-    public void addTracks(String playlistId, String trackId) throws IOException, ParseException {
+    public void addTracks(String playlistId, List<String> trackId) throws IOException, ParseException {
         OkHttpClient okHttpClient = new OkHttpClient().newBuilder().build();
         MediaType mediaType = MediaType.parse("application/json");
-        RequestBody body = RequestBody.create(mediaType, "");
+        String listString = String.join(",", trackId);
+        RequestBody body = RequestBody.create(mediaType,"");
         Request request = new Request.Builder()
-                .url(String.format("https://api.spotify.com/v1/playlists/%s/tracks?uris=spotify:track:%s", playlistId, trackId))
+                .url(String.format("https://api.spotify.com/v1/playlists/%s/tracks?uris=%s", playlistId, listString))
                 .method("POST", body)
                 .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
+                .addHeader("Content-Type", "application/json")
                 .build();
         Response response = okHttpClient.newCall(request).execute();
         Objects.requireNonNull(response.body()).string();
@@ -98,6 +101,5 @@ public class SpotifyConnection {
                 .url(String.format("https://api.spotify.com/v1/users/%s/playlists", userId))
                 .addHeader("Authorization", String.format("Bearer %s", obtainAccessToken()))
                 .build();
-
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.maxamato.youtify.connection.YoutubeConnection.getService;
 
@@ -28,13 +29,7 @@ public class YoutifyService {
 
 
     /***
-     *TODO: Optimise adding tracks
-     * ISSUE: tracks getting multiplied.
-     * IDEA: Instead of loops, make List<String> tracksToAdd (their ids)
-     * -> Check them with List<String> tracksIdsInsideSpotifyPlaylist, ignore matching ones,
-     * add the rest using body request
-     * instead of query params in SpotifyConnection.addTrack();
-     * Try to fetch tracks better
+     * TODO: fetch tracks better
      **/
 
     public String mainYoutify() throws IOException, ParseException, GeneralSecurityException {
@@ -70,6 +65,7 @@ public class YoutifyService {
      Spotify's API search item function does not wor.
     **/
     private void searchForTrackBasedOnPopularitySpotify(List<String> ytTracks) throws IOException, ParseException, GeneralSecurityException {
+        List<String> ids=new ArrayList<>();
         for(String ytTrack:ytTracks) {
             String jsonString = spotifyConnection.searchForTrackBasedOnPopularity(ytTrack
                     .replace("- ", "").replace(" ", "%2B"));
@@ -84,24 +80,33 @@ public class YoutifyService {
             int indexOfTheMostPopular = popularityValues.indexOf(Collections.max(popularityValues));
             JSONObject item = (JSONObject) items.get(indexOfTheMostPopular);
             String trackId = (String) item.get("id");
-            addTracks(Credentials.getPlId(), trackId);
+            ids.add(trackId);
         }
+        addTracks(Credentials.getPlId(), ids);
     }
-
-    private void addTracks(String plId, String trackId) throws IOException, ParseException {
+    
+    
+    /**
+     * @param plId Playlists ID from spotify
+     * @param trackId Track ID from spotify to add
+     * **/
+    private void addTracks(String plId, List<String> trackId) throws IOException, ParseException {
         String jsonString = spotifyConnection.getItemsFromPlaylist(plId);
         JSONObject jsonObject = (JSONObject) new JSONParser().parse(jsonString);
         JSONArray jsonArray = (JSONArray) jsonObject.get("items");
+        List<String> spotifyIds = new ArrayList<>();
         for(Object o:jsonArray){
             JSONObject item = (JSONObject) o;
-            System.out.println(item);
             JSONObject track = (JSONObject) item.get("track");
             String id = (String) track.get("id");
-
-            System.out.println(id);
-            if(!id.equals(trackId))
-                spotifyConnection.addTracks(plId, trackId);
+            spotifyIds.add(id);
         }
+        List<String> intersection = new ArrayList<>(trackId);
+        intersection.retainAll(spotifyIds);
+        trackId.removeAll(intersection);
+        trackId = trackId.stream().map(s -> "spotify:track:" + s).collect(Collectors.toList());
+        spotifyConnection.addTracks(plId, trackId);
+
     }
 
 
@@ -121,6 +126,10 @@ public class YoutifyService {
         return result;
     }
 
+    /**
+     * @param youtubeService Youtube service entity - obtained through following google docs for Youtube API v3
+     * @return String Playlists id
+     * */
     private String obtainYoutubePlaylistId(YouTube youtubeService) throws GeneralSecurityException, IOException {
         // Define and execute the API request
         YouTube.Playlists.List request = youtubeService.playlists()

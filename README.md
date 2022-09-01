@@ -1,6 +1,6 @@
 # Youtify - project not in production
 ___
-#About
+# About
 <b>Project created as a help for myself, since spending hours, creating a project that will do same as 2 clicks of a button,
 is of course far more efficient. I'm sorry for any inconvenience that you may encounter when trying to make use of this project. </b>
 It was never meant to be public but only for personal use.
